@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L3 Problem Ticket Dashboard — SDM-Xstore-L3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+    --border:#30363d;--border2:#484f58;
+    --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+    --red:#f85149;--red-bg:#3d1a1a;--red-dim:#da3633;
+    --orange:#e3b341;--orange-bg:#2e1e04;
+    --blue:#58a6ff;--blue-bg:#1c2e46;
+    --green:#3fb950;--green-bg:#1a2e1a;
+    --purple:#bc8cff;--purple-bg:#2a1e3e;
+    --gray-bg:#21262d;
+    --radius:8px;--radius-lg:12px;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+  a{color:var(--blue);text-decoration:none}
+  
+  header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.3px}
+  .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#1f6feb,#388bfd);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+  .header-meta{font-size:12px;color:var(--text3)}
+
+  main{max-width:1400px;margin:0 auto;padding:24px}
+  
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+  .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .15s}
+  .stat-card:hover{border-color:var(--border2)}
+  .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .stat-value{font-size:26px;font-weight:600;line-height:1}
+  .stat-value.red{color:var(--red)}
+  .stat-value.orange{color:var(--orange)}
+  .stat-value.green{color:var(--green)}
+  .stat-value.blue{color:var(--blue)}
+  .stat-sub{font-size:11px;color:var(--text3);margin-top:4px}
+
+  .panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:20px;overflow:hidden}
+  .panel-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--bg3)}
+  .panel-title{font-weight:600;font-size:13px;color:var(--text)}
+  .panel-body{padding:16px 20px}
+
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .search-wrap{display:flex;gap:8px;flex:1;min-width:260px;max-width:460px}
+  input[type=text],select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:7px 12px;font-size:13px;outline:none;transition:border-color .15s}
+  input[type=text]{flex:1}
+  input[type=text]:focus,select:focus{border-color:var(--blue)}
+  select{cursor:pointer}
+  input[type=file]{display:none}
+  
+  button{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:7px 14px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s,border-color .15s;white-space:nowrap}
+  button:hover{background:var(--bg4);border-color:var(--border2)}
+  button.primary{background:#1f6feb;border-color:#1f6feb;color:#fff;font-weight:500}
+  button.primary:hover{background:#388bfd}
+  button.upload-btn{border-style:dashed}
+  button.upload-btn.loaded{border-style:solid;border-color:var(--green);color:var(--green)}
+  .pill-green{font-size:11px;background:var(--green-bg);color:var(--green);border:1px solid #2a4a2a;padding:2px 8px;border-radius:20px;display:inline-block}
+
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .filter-label{font-size:12px;color:var(--text3);margin-right:2px}
+  .result-count{font-size:12px;color:var(--text3);margin-left:auto}
+
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  colgroup col:nth-child(1){width:120px}
+  colgroup col:nth-child(2){width:110px}
+  colgroup col:nth-child(3){width:auto}
+  colgroup col:nth-child(4){width:140px}
+  colgroup col:nth-child(5){width:160px}
+  colgroup col:nth-child(6){width:90px}
+  thead th{background:var(--bg3);color:var(--text2);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+  tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+  tbody tr:hover{background:var(--bg3)}
+  tbody tr.selected{background:#1c2e46;border-color:#1f6feb}
+  td{padding:9px 12px;vertical-align:middle;color:var(--text)}
+  td.number{color:var(--blue);font-weight:500;font-size:12px;font-family:monospace}
+  td.statement{max-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+  td.incidents{text-align:right;font-variant-numeric:tabular-nums;color:var(--text2)}
+  td.assignee{color:var(--text2);max-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;white-space:nowrap;border:1px solid transparent}
+  .badge-critical{background:#3d1a1a;color:#f85149;border-color:#6e1d1d}
+  .badge-high{background:#2e1e04;color:#e3b341;border-color:#5a3c0a}
+  .badge-moderate{background:#1c2e46;color:#58a6ff;border-color:#1f4070}
+  .badge-low{background:#1a2e1a;color:#3fb950;border-color:#2a4a2a}
+  .badge-monitor{background:#1a2e1a;color:#3fb950;border-color:#2a4a2a}
+  .badge-diagnose{background:#2e1e04;color:#e3b341;border-color:#5a3c0a}
+  .badge-prioritize{background:#1c2e46;color:#58a6ff;border-color:#1f4070}
+  .badge-detect{background:#21262d;color:#8b949e;border-color:#484f58}
+  .badge-review{background:#2a1e3e;color:#bc8cff;border-color:#4a3270}
+
+  .pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px}
+  .page-info{font-size:12px;color:var(--text3)}
+  .page-btn{padding:5px 10px;font-size:12px}
+  .page-btn:disabled{opacity:.35;cursor:not-allowed}
+
+  .detail-wrap{display:none;padding:0 20px 20px}
+  .detail-wrap.open{display:block}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:700px){.detail-grid{grid-template-columns:1fr}}
+  .detail-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+  .detail-card-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  .detail-card-tag{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)}
+  .detail-card-num{font-size:13px;font-weight:600;font-family:monospace;color:var(--blue)}
+  .detail-statement{font-size:14px;font-weight:500;color:var(--text);line-height:1.5;margin-bottom:14px;padding:10px 12px;background:var(--bg2);border-radius:6px;border-left:3px solid var(--blue)}
+  .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+  .field{padding:6px 0}
+  .field-key{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+  .field-val{font-size:13px;color:var(--text)}
+  .empty-jira{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:32px 16px;color:var(--text3);font-size:13px;text-align:center}
+  .empty-icon{font-size:28px}
+
+  .notice{background:#1c2e46;border:1px solid #1f6feb;border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--text2);display:flex;gap:10px;align-items:flex-start}
+  .notice strong{color:var(--blue)}
+
+  footer{text-align:center;padding:24px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);margin-top:32px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">L3</div>
+    Problem Ticket Dashboard
+  </div>
+  <div class="header-meta">SDM-Xstore-L3 &nbsp;·&nbsp; 143 tickets</div>
+</header>
+
+<main>
+
+  <div class="notice">
+    <span>📋</span>
+    <span><strong>How to share with your team:</strong> Download this HTML file and host it on any internal web server, SharePoint, GitHub Pages, or send the file directly. It works entirely offline — no server or internet needed. See hosting options below the table.</span>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total tickets</div><div class="stat-value blue" id="st-total">143</div><div class="stat-sub">All problem records</div></div>
+    <div class="stat-card"><div class="stat-label">Critical</div><div class="stat-value red" id="st-crit">—</div><div class="stat-sub">Priority 1</div></div>
+    <div class="stat-card"><div class="stat-label">Active incidents</div><div class="stat-value green" id="st-active">—</div><div class="stat-sub">Live impact</div></div>
+    <div class="stat-card"><div class="stat-label">In diagnose</div><div class="stat-value orange" id="st-diag">—</div><div class="stat-sub">Being investigated</div></div>
+    <div class="stat-card"><div class="stat-label">JIRA tickets</div><div class="stat-value blue" id="st-jira">0</div><div class="stat-sub">Loaded via upload</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">🔍 Look up a ticket</span>
+    </div>
+    <div class="panel-body">
+      <div class="controls">
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="Enter ticket number e.g. PRB0057241" onkeydown="if(event.key==='Enter')lookupTicket()">
+          <button class="primary" onclick="lookupTicket()">Look up</button>
+          <button onclick="clearDetail()" id="clearBtn" style="display:none">✕ Clear</button>
+        </div>
+        <label>
+          <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('jiraFile').click()">
+            📎 Upload JIRA tickets (.xlsx)
+          </button>
+          <input type="file" id="jiraFile" accept=".xlsx,.xls" onchange="handleJiraUpload(event)">
+        </label>
+        <span id="jiraStatus"></span>
+      </div>
+      <div id="detailContainer" class="detail-wrap">
+        <div class="detail-grid" id="detailGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">📋 All tickets</span>
+    </div>
+    <div class="panel-body">
+      <div class="filter-bar">
+        <span class="filter-label">Filter:</span>
+        <select id="fPriority" onchange="applyFilters()">
+          <option value="">All priorities</option>
+          <option>1 - Critical</option><option>2 - High</option>
+          <option>3 - Moderate</option><option>4 - Low</option>
+        </select>
+        <select id="fState" onchange="applyFilters()">
+          <option value="">All states</option>
+          <option>Monitor and Resolve</option><option>Diagnose</option>
+          <option>Prioritize</option><option>Detect</option><option>Review</option>
+        </select>
+        <select id="fActive" onchange="applyFilters()">
+          <option value="">All activity</option>
+          <option value="yes">Active incidents</option>
+          <option value="no">No active incidents</option>
+        </select>
+        <button onclick="clearFilters()" style="font-size:12px;padding:5px 10px">Clear filters</button>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <colgroup><col><col><col><col><col><col></colgroup>
+          <thead>
+            <tr>
+              <th>Number</th><th>Priority</th><th>Problem statement</th>
+              <th>State</th><th>Assigned to</th><th>Related inc.</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="page-btn" id="prevBtn" onclick="changePage(-1)">← Prev</button>
+        <span class="page-info" id="pageInfo"></span>
+        <button class="page-btn" id="nextBtn" onclick="changePage(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">🌐 How to share this dashboard with your team</span></div>
+    <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+      <div style="padding:14px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="font-weight:600;margin-bottom:6px;color:var(--green)">Option 1 — Internal server</div>
+        <div style="color:var(--text2);font-size:13px">Place this HTML file on your team's intranet or file server. Share the URL with colleagues. No setup needed — it's a single file.</div>
+      </div>
+      <div style="padding:14px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="font-weight:600;margin-bottom:6px;color:var(--blue)">Option 2 — GitHub Pages</div>
+        <div style="color:var(--text2);font-size:13px">Create a free GitHub repo, upload this file as <code style="color:var(--orange)">index.html</code>, enable Pages. Your team gets a permanent public URL instantly.</div>
+      </div>
+      <div style="padding:14px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="font-weight:600;margin-bottom:6px;color:var(--orange)">Option 3 — SharePoint / Teams</div>
+        <div style="color:var(--text2);font-size:13px">Upload to SharePoint document library and share the link. Or attach to a Teams channel for direct access by all members.</div>
+      </div>
+      <div style="padding:14px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="font-weight:600;margin-bottom:6px;color:var(--purple)">Option 4 — Netlify Drop</div>
+        <div style="color:var(--text2);font-size:13px">Go to <a href="https://app.netlify.com/drop" target="_blank">app.netlify.com/drop</a>, drag & drop this file. You get a shareable HTTPS link in seconds — no account needed.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>L3 Problem Ticket Dashboard &nbsp;·&nbsp; SDM-Xstore-L3 &nbsp;·&nbsp; Built with data from L3_Problem_Tickets.xlsx</footer>
+
+<script>
+const DATA = [{"Number":"PRB0057241","Created":"2021-08-20 13:50:20","Active":true,"Related Incidents":6520,"Priority":"2 - High","Problem statement":"No POS data available- CashOffice Processing","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":true},{"Number":"PRB0066481","Created":"2023-12-12 07:46:25","Active":true,"Related Incidents":5738,"Priority":"1 - Critical","Problem statement":"Scanner beeps but does not scan","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Gayathri Nandyala","Active Incidents (True or False)":true},{"Number":"PRB0051961","Created":"2020-11-02 02:02:44","Active":true,"Related Incidents":3485,"Priority":"1 - Critical","Problem statement":"Inaccessible controller/VH1 devices impacting store close/open process from registers","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Rajakumari Amirtharaj","Active Incidents (True or False)":true},{"Number":"PRB0050134","Created":"2020-07-30 12:27:44","Active":true,"Related Incidents":2620,"Priority":"1 - Critical","Problem statement":"Xstore V.17.0.3 Auto Close process is not initiated at 1:30 AM (local store time) in case the EOD process is not initiated by the Store Manager / POSTEAM-28468","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0069984","Created":"2025-01-20 11:11:19","Active":true,"Related Incidents":2108,"Priority":"1 - Critical","Problem statement":"Controller/Register Stuck on Blank screen/ Xenvironment not launching","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0051962","Created":"2020-11-02 02:03:36","Active":true,"Related Incidents":1239,"Priority":"1 - Critical","Problem statement":"Xenvironment app not running impacting store close process to initiate or complete.","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0066093","Created":"2023-10-31 13:58:49","Active":true,"Related Incidents":861,"Priority":"1 - Critical","Problem statement":"Oracle POS Dashboard not updating the final store close status for V21 stores","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0061750","Created":"2022-06-17 13:14:35","Active":true,"Related Incidents":758,"Priority":"2 - High","Problem statement":"Delay in updating data and information between Register and Controllers.","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":true},{"Number":"PRB0068322","Created":"2024-06-27 08:33:53","Active":true,"Related Incidents":630,"Priority":"2 - High","Problem statement":"Control-M job failure for POS DataStage","State":"Prioritize","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":true},{"Number":"PRB0069890","Created":"2025-01-06 05:33:20","Active":true,"Related Incidents":540,"Priority":"3 - Moderate","Problem statement":"TJX Job RKNPD16L Failure which loads the Cashier ID data (polled from all stores in the form xstore mnt files) into Xcenter DB","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":true},{"Number":"PRB0067881","Created":"2024-05-09 13:48:16","Active":true,"Related Incidents":510,"Priority":"1 - Critical","Problem statement":"Time Sync Issue between Register and Controller","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0067805","Created":"2024-05-02 03:54:50","Active":true,"Related Incidents":405,"Priority":"2 - High","Problem statement":"Xstore ecomm return offline surpassed threshold ","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":true},{"Number":"PRB0070009","Created":"2025-01-22 11:20:59","Active":true,"Related Incidents":398,"Priority":"3 - Moderate","Problem statement":"Register transaction replication issue due to bad trustore/keystore certificate issue","State":"Diagnose","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0070059","Created":"2025-01-30 05:28:01","Active":true,"Related Incidents":381,"Priority":"4 - Low","Problem statement":"Customer Display not working ","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Muskan Tripathi","Active Incidents (True or False)":true},{"Number":"PRB0066995","Created":"2024-02-15 06:36:22","Active":true,"Related Incidents":276,"Priority":"4 - Low","Problem statement":"Appriss Unavailability transactions surpassed threshold.","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Muskan Tripathi","Active Incidents (True or False)":true},{"Number":"PRB0070025","Created":"2025-01-24 08:57:10","Active":true,"Related Incidents":207,"Priority":"2 - High","Problem statement":"Control-M job ended Not-OK L-RXNPD85P-RXNPD85P","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":true},{"Number":"PRB0062734","Created":"2022-10-17 11:31:50","Active":true,"Related Incidents":146,"Priority":"1 - Critical","Problem statement":"Xstore POS – LOGIN ATTEMPT FAILED","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0071206","Created":"2025-06-23 13:03:08","Active":true,"Related Incidents":100,"Priority":"1 - Critical","Problem statement":"Power down issue where  manual intervention was required such as  Reseating the cable or flipping the breaker  or cabling  to the registers to the white outlet ","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072625","Created":"2025-11-21 05:50:21","Active":true,"Related Incidents":91,"Priority":"1 - Critical","Problem statement":"Tax is not being applied on ECOM  returns in Xstore","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0067804","Created":"2024-05-02 03:48:22","Active":true,"Related Incidents":90,"Priority":"3 - Moderate","Problem statement":"URGENT IMMEDIATE ACTION REQUIRED - NEW SKU BLOCK FILE MISSING","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":true},{"Number":"PRB0073811","Created":"2026-04-23 12:44:51","Active":true,"Related Incidents":67,"Priority":"2 - High","Problem statement":"Multiple TJM Banner stores are being effected with \" Unverified return \"","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0070365","Created":"2025-03-10 06:56:35","Active":true,"Related Incidents":66,"Priority":"2 - High","Problem statement":"Xstore pos not showing the Alzheimer charity icon","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0068276","Created":"2024-06-24 09:59:43","Active":true,"Related Incidents":57,"Priority":"4 - Low","Problem statement":"Mobile POS printing issues","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0065203","Created":"2023-08-04 05:55:48","Active":true,"Related Incidents":57,"Priority":"4 - Low","Problem statement":"Xstore POS : Printer issues on Register","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Muskan Tripathi","Active Incidents (True or False)":true},{"Number":"PRB0070671","Created":"2025-04-21 15:22:42","Active":true,"Related Incidents":51,"Priority":"1 - Critical","Problem statement":"Error Prompt \"Incorrect Business Date\" when store associate tries to open a register GFOS-6521","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0069969","Created":"2025-01-16 02:55:24","Active":true,"Related Incidents":46,"Priority":"3 - Moderate","Problem statement":"The Marshalls TBC job is failing while Creating file name without any store number for Style Id 116341 and Department 20","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Pavithra P","Active Incidents (True or False)":true},{"Number":"PRB0064063","Created":"2023-03-27 15:23:58","Active":true,"Related Incidents":42,"Priority":"4 - Low","Problem statement":"Missing sales due to POSLOG data not present in Database","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":true},{"Number":"PRB0073463","Created":"2026-03-12 09:28:18","Active":true,"Related Incidents":32,"Priority":"4 - Low","Problem statement":"Pepsi beverage items are getting taxed at stores and  Pepsi beverage items Quick Key/deposit fee not  working","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0067815","Created":"2024-05-02 10:57:41","Active":true,"Related Incidents":26,"Priority":"1 - Critical","Problem statement":"Incorrect [future] system time prevents registers from functioning ","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073452","Created":"2026-03-11 07:59:54","Active":true,"Related Incidents":22,"Priority":"4 - Low","Problem statement":"EOD process not getting triggered","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072844","Created":"2025-12-26 16:04:23","Active":true,"Related Incidents":19,"Priority":"4 - Low","Problem statement":"ECOMM return are  coming up as unverified due to SSLHandshakeException","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0071720","Created":"2025-08-07 09:26:00","Active":true,"Related Incidents":17,"Priority":"1 - Critical","Problem statement":"Incorrect department reported in MF TY Monthly sales file","State":"Prioritize","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":true},{"Number":"PRB0066899","Created":"2024-02-02 18:10:15","Active":true,"Related Incidents":17,"Priority":"3 - Moderate","Problem statement":"T-Log: Invalid Accounts for all transactions - GFOSTEAM-38467","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":true},{"Number":"PRB0073451","Created":"2026-03-11 07:56:59","Active":true,"Related Incidents":15,"Priority":"3 - Moderate","Problem statement":"EOD Process long running","State":"Prioritize","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0071049","Created":"2025-06-04 14:06:47","Active":true,"Related Incidents":11,"Priority":"1 - Critical","Problem statement":"XStore upgrade failure to 21.0.4 CHG0164538","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0069026","Created":"2024-09-16 04:30:49","Active":true,"Related Incidents":11,"Priority":"2 - High","Problem statement":"TJX-US NA Sales Polling  DataStage job  failed  due to bad data  in POSLOG.","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0068947","Created":"2024-09-05 12:29:55","Active":true,"Related Incidents":11,"Priority":"1 - Critical","Problem statement":"Construction Issue Prevents a store from trading","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0073458","Created":"2026-03-11 17:51:54","Active":true,"Related Incidents":10,"Priority":"2 - High","Problem statement":"CP3000 cash office |  TOT files are not getting generated automatically for multiple bd continuously for TJMaxx & HG banners ","State":"Prioritize","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0070055","Created":"2025-01-29 16:45:30","Active":true,"Related Incidents":9,"Priority":"1 - Critical","Problem statement":"Due to unstable network connectivity issue store register not working in offline mode.","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072876","Created":"2026-01-04 05:26:45","Active":true,"Related Incidents":8,"Priority":"2 - High","Problem statement":"Store Open/Close POS Dashboard affected for Canada stores due to loc_rtl_loc file gets consumed before org_hierarchy file at Xcenter.","State":"Diagnose","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072061","Created":"2025-09-15 09:45:57","Active":true,"Related Incidents":7,"Priority":"4 - Low","Problem statement":"Restaging issue For MPOS","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0068183","Created":"2024-06-12 11:16:16","Active":true,"Related Incidents":7,"Priority":"4 - Low","Problem statement":"Amount is getting split during refund to original card & xstore prompting for multiple payments in V21.0.2","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072838","Created":"2025-12-24 11:16:27","Active":true,"Related Incidents":6,"Priority":"4 - Low","Problem statement":"Controller DB down issue","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0070626","Created":"2025-04-14 09:41:58","Active":true,"Related Incidents":6,"Priority":"1 - Critical","Problem statement":"TJX US/CAN - Store trading in offline mode due to Store network is down","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0070253","Created":"2025-02-24 14:57:56","Active":true,"Related Incidents":5,"Priority":"4 - Low","Problem statement":"Tax not getting applied for all items in the transaction.","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073663","Created":"2026-04-06 13:33:08","Active":true,"Related Incidents":4,"Priority":"1 - Critical","Problem statement":"TJX-US - Multiple stores across all time zones did not complete the End-of-Day (EOD) process","State":"Prioritize","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0072819","Created":"2025-12-20 08:38:26","Active":true,"Related Incidents":4,"Priority":"2 - High","Problem statement":"POS Dashboard & Transaction Receipts affected for Canada stores due to incorrect location MNT deployment","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0071168","Created":"2025-06-18 10:55:53","Active":true,"Related Incidents":4,"Priority":"4 - Low","Problem statement":"HGs / TJM Stores discovered approximately $2k worth of TJ dept 08 Contemporary that is ringing up as HG 08 Body and Bath.  We are a superstore so we carry both ","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0073586","Created":"2026-03-29 07:20:00","Active":true,"Related Incidents":3,"Priority":"1 - Critical","Problem statement":"TJX-US - Sales Polling EOD has surpassed the SLA of 05:45 AM EST for US Banners","State":"Prioritize","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":true},{"Number":"PRB0073257","Created":"2026-02-18 10:48:16","Active":true,"Related Incidents":3,"Priority":"1 - Critical","Problem statement":"Controller in degraded state post Vh1 upgrade to Gen 11","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073190","Created":"2026-02-11 05:02:28","Active":true,"Related Incidents":3,"Priority":"1 - Critical","Problem statement":"Europe NL Stores unable to open as there is a prompt  \"Contact service desk\" in all the registers","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Rajakumari Amirtharaj","Active Incidents (True or False)":true},{"Number":"PRB0071193","Created":"2025-06-20 11:35:09","Active":true,"Related Incidents":3,"Priority":"1 - Critical","Problem statement":"There was a problem claiming Cashdrawer/Scanner/Pole display on all registers.","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0069129","Created":"2024-09-30 14:22:45","Active":true,"Related Incidents":3,"Priority":"1 - Critical","Problem statement":"Registers throws Call systems service desk error while scanning any item causing Store down","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0073668","Created":"2026-04-07 07:07:43","Active":true,"Related Incidents":2,"Priority":"4 - Low","Problem statement":"EU Both NL and Spain Stores reporting Flash sales report in xadmin mismatching.","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Gayathri Nandyala","Active Incidents (True or False)":true},{"Number":"PRB0073578","Created":"2026-03-27 09:10:12","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"EU Xstore - RTLog Broadcaster SocketTimeoutException","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073506","Created":"2026-03-17 13:00:13","Active":true,"Related Incidents":2,"Priority":"4 - Low","Problem statement":"Incorrect Amount Returned to Customer","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Gayathri Nandyala","Active Incidents (True or False)":true},{"Number":"PRB0072966","Created":"2026-01-15 09:23:13","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"Cash drawer popped open automatically post power outage","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072935","Created":"2026-01-13 04:00:54","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"XStore Cash office - Unable to perform reconciliation  on Controller due to stale sessions","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072843","Created":"2025-12-26 12:12:15","Active":true,"Related Incidents":2,"Priority":"2 - High","Problem statement":"VM backup running long impacting store opening","State":"Prioritize","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072459","Created":"2025-10-28 06:01:55","Active":true,"Related Incidents":2,"Priority":"3 - Moderate","Problem statement":"CA - Multiple returns in Xstore for the same original sale transaction a few minutes apart","State":"Diagnose","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Anurag Gajpal","Active Incidents (True or False)":true},{"Number":"PRB0071257","Created":"2025-06-27 13:52:59","Active":true,"Related Incidents":2,"Priority":"4 - Low","Problem statement":"Incorrect Tax calculation while returning  item","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":true},{"Number":"PRB0073629","Created":"2026-04-01 12:25:26","Active":true,"Related Incidents":1,"Priority":"2 - High","Problem statement":"INC8574682 - TJX-NA Proactive monitoring indicates multiple stores are experiencing register disruptions, with systems appearing offline to XCenter","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0073546","Created":"2026-03-24 02:54:15","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"OOB Missing payment line - Foreign card/PYC  due to large number in OriginalFaceAmount Tag","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073537","Created":"2026-03-23 08:07:49","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Xstore pos app vs schema error on all register due to incorrect sequence number in the version table post Q1 rollout","State":"Prioritize","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073445","Created":"2026-03-10 21:44:21","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"TJX-US - Marshalls Store 0604, being a combo store with HomeGoods Store 0057 is unable to process any HomeGoods merchandise","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0073344","Created":"2026-02-26 13:30:09","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"All 19  Netherland Xstores are partially  polled for the business date 8th Feb 2026. ","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073163","Created":"2026-02-09 13:11:35","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Xstore allowing verified return on two different registers at same time","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073159","Created":"2026-02-09 08:40:35","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"User has access but still cash office balancing report not available on Xadmin","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0073096","Created":"2026-02-04 16:00:12","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"\"Service Unavailable\" error for Ecom Return Qty update ","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072841","Created":"2025-12-25 06:05:09","Active":true,"Related Incidents":1,"Priority":"2 - High","Problem statement":"NA Sales Polling Job Failures","State":"Prioritize","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":true},{"Number":"PRB0072660","Created":"2025-11-26 04:37:25","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Missing Transactions in Xadmin & MF - Gift Card/Merch Credit Issuances ","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072218","Created":"2025-09-26 23:41:20","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Tender authorization is currently offline due to D:\\eftlink\\pointus.runtime.json corruption","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0072097","Created":"2025-09-18 09:38:16","Active":true,"Related Incidents":1,"Priority":"2 - High","Problem statement":"Xadmin login  slowness  after V21.0.4","State":"Diagnose","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0071901","Created":"2025-08-27 08:24:39","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Non marshall departement does not prmopt for department conversion for ECOM & Verified return","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":true},{"Number":"PRB0071138","Created":"2025-06-17 06:09:06","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Extra item got printed on return receipt ","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Sagar Mahabaleshwara Maganahalli","Active Incidents (True or False)":true},{"Number":"PRB0073757","Created":"2026-04-16 09:29:16","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"IT Issue/delay during remodel prevents store from trading","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":false},{"Number":"PRB0073583","Created":"2026-03-27 13:27:21","Active":true,"Related Incidents":2,"Priority":"2 - High","Problem statement":"Multiple TJ Maxx stores reporting Deposit fees charging incorrectly for Pepsi quick keys ","State":"Detect","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":null,"Active Incidents (True or False)":false},{"Number":"PRB0073545","Created":"2026-03-24 02:47:37","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"\u00a0OOB  for ECOM returns due to  unrecognized Tax  [ECOMM_PLACEHOLDER_TAX_AUTHORITY_ID-TAX1] tag ","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0073539","Created":"2026-03-23 08:19:46","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Xstore pos app vs schema errors post controller with new image","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0073499","Created":"2026-03-17 07:57:25","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"Cash drawer popped open unexpectedly due to faulty cable/functional issue","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0073439","Created":"2026-03-10 09:30:30","Active":true,"Related Incidents":0,"Priority":"1 - Critical","Problem statement":"Cashdrawer No service Error post Epson driver deployment","State":"Prioritize","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0073410","Created":"2026-03-06 09:21:54","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"HP Engage Pro I/O module does not function after power outage (Duplicate to be cancelled)","State":"Detect","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":null,"Active Incidents (True or False)":false},{"Number":"PRB0073409","Created":"2026-03-06 09:21:12","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"HP Engage Pro I/O module does not function post Epson printer driver deployment ","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0073400","Created":"2026-03-05 13:27:28","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"Store unable to open register for trading as part of Gen11 upgrade","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":false},{"Number":"PRB0072986","Created":"2026-01-20 08:22:52","Active":true,"Related Incidents":2,"Priority":"4 - Low","Problem statement":"Sales were rejected in RESA due to an unexpected transaction sequence reset in Xstore","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0072652","Created":"2025-11-25 12:01:09","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"Unverified  Return Transactions due to staging Item/Tax data present in Controller DB","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0072101","Created":"2025-09-19 00:21:19","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"All TJX Rewards Credit Cards are not being flagged as being TJXR Cards.","State":"Detect","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":null,"Active Incidents (True or False)":false},{"Number":"PRB0071528","Created":"2025-07-21 16:03:44","Active":true,"Related Incidents":49,"Priority":"4 - Low","Problem statement":"Multiple stores reporting that when running an Instant Credit application, 10% coupon not printing out at end","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Anurag Gajpal","Active Incidents (True or False)":false},{"Number":"PRB0071249","Created":"2025-06-27 08:56:56","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"Store Firewall date incorrectly set to the year 1999","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0071208","Created":"2025-06-23 14:17:09","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"Transactions freeze on registers","State":"Prioritize","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0071141","Created":"2025-06-17 10:57:07","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Register stuck on  Xenviroment screen ","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0071002","Created":"2025-05-30 13:20:28","Active":true,"Related Incidents":8,"Priority":"4 - Low","Problem statement":"TJX NA - Warning message on XStore screen regarding certificate expiry","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Sagar Mahabaleshwara Maganahalli","Active Incidents (True or False)":false},{"Number":"PRB0070807","Created":"2025-05-09 15:57:12","Active":true,"Related Incidents":2,"Priority":"4 - Low","Problem statement":"Xadmin Tax Exemption report times out or it loads but does not show any data.","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0070804","Created":"2025-05-09 06:50:15","Active":true,"Related Incidents":17,"Priority":"1 - Critical","Problem statement":"Power Outages at stores - where store started trading online without any manual intervention","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0070780","Created":"2025-05-06 08:46:25","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Duplicate Sales Transactions being reported by Sales Audit","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0070551","Created":"2025-04-03 13:12:47","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"All registers || Spanish language needs to be enabled for Instant credit application","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":false},{"Number":"PRB0070539","Created":"2025-04-02 09:31:04","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Tax rate displayed on return receipts is incorrect","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":false},{"Number":"PRB0070488","Created":"2025-03-25 09:06:40","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"TJX-US Marshalls Store 1098 was unable to trade with any of it's Registers","State":"Diagnose","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0070199","Created":"2025-02-18 04:46:59","Active":true,"Related Incidents":46,"Priority":"3 - Moderate","Problem statement":"Tax not getting applied to few style from 5 departments 29.40, 70,71& 72 for Canada stores","State":"Diagnose","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0070192","Created":"2025-02-17 14:57:08","Active":true,"Related Incidents":9,"Priority":"1 - Critical","Problem statement":"TJX C - Long running Datastage jobs for Canada Tax Exception","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0070143","Created":"2025-02-10 12:04:20","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"Xstore-user able to open register without a close done on previous business date (causes OOB in t-log)","State":"Diagnose","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Muskan Tripathi","Active Incidents (True or False)":false},{"Number":"PRB0070103","Created":"2025-02-04 11:09:37","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Duplicate file creation during delta ITEM file JOB at DataStage","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":false},{"Number":"PRB0070102","Created":"2025-02-04 11:08:34","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"v21-MT in MF and EJ","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069906","Created":"2025-01-07 10:29:40","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"Penny rounding happening on tax for debit and credit card trx.  This seem to have started on 12/15 and at the moment it is only happening for French speaking st","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069812","Created":"2024-12-18 08:32:33","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"TJX US - HomeGoods Store 0491 and TJX US HomeGoods Store 1122 are unable to trade with any of its registers.","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069744","Created":"2024-12-11 10:58:41","Active":true,"Related Incidents":2,"Priority":"4 - Low","Problem statement":"Associate ID is getting tagged to a random customer's receipted refund on Appriss end","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069726","Created":"2024-12-09 12:06:10","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Store 107 12/03 reg 1 trx 831 penny rounding is happening on credit card returns.  Please investigate","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069667","Created":"2024-12-02 12:03:23","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Blocked SKU getting sold on Xstore","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069598","Created":"2024-11-20 09:40:49","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"Customers being rung up twice-INC7035108","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Sagar Mahabaleshwara Maganahalli","Active Incidents (True or False)":false},{"Number":"PRB0069568","Created":"2024-11-18 11:39:01","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"Transaction getting Cancelled Orphaned during  instore network outage.","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069226","Created":"2024-10-09 11:03:37","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"Incorrect ItemID & ScannedItemID in Poslog","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069185","Created":"2024-10-04 08:41:39","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"BUG WIP P1 (confirmed): Store Copy Not Printing for Email-Only Return Receipt - US","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069183","Created":"2024-10-04 08:31:44","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"US Return to Original Tender (RTOT) Issue with Prepaid Credit Card","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069182","Created":"2024-10-04 08:31:47","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"CANADA Return to Original Tender (RTOT) Issue with Prepaid Credit Card","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069155","Created":"2024-10-03 07:05:14","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"T-Log OOB due to Texas Manifesto & Agency Payment Transactions-INC6933263","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069126","Created":"2024-09-30 08:23:08","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"XStore Prompts \"Receipt cannot be verified\" at the start of verified return","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069061","Created":"2024-09-19 16:41:26","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Marshalls Store 0832 is unable to trade with any of its registers","State":"Review","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0069058","Created":"2024-09-19 11:06:08","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"P1 -TJX-US- TJ Maxx Store 0679 is unable to trade with any of its registers ","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":false},{"Number":"PRB0069047","Created":"2024-09-18 06:56:27","Active":true,"Related Incidents":174,"Priority":"4 - Low","Problem statement":"Call System Service Desk post Customer lookup with Card token during verified return","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068908","Created":"2024-08-29 13:07:54","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"XAdmin Reports - tried to run the child tax exemption report but the report parameters do not come up.    This is affecting all of Finance so this needs to be c","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068884","Created":"2024-08-27 11:24:10","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"Marshalls Store 1591 is currently unable to trading with any of the registers","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068874","Created":"2024-08-25 12:48:05","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"TJX CA Marshalls Store 0667 Grand Opening today and experiencing issues with scanning some departments","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068849","Created":"2024-08-21 11:17:33","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"P1-TJX US: Homegoods store 0784 unable to trade with any of its register-INC6828699","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":false},{"Number":"PRB0068805","Created":"2024-08-18 12:57:02","Active":true,"Related Incidents":10,"Priority":"1 - Critical","Problem statement":"Xstore POS – Xstore Frozen / Xenvironment  not  launching ","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068702","Created":"2024-08-07 10:25:25","Active":true,"Related Incidents":2,"Priority":"3 - Moderate","Problem statement":"Branded Mastercard via tap fails when attempt a token query lookup","State":"Prioritize","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Muskan Tripathi","Active Incidents (True or False)":false},{"Number":"PRB0068693","Created":"2024-08-06 11:29:43","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Customer Lookup Beta P2: Cross Banner Returns not working if scanned & no dept match","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068537","Created":"2024-07-22 05:24:15","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Store reporting when going from first page of Quick Keys to 2nd page in can take 10-15 min to see 2nd page","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Sagar Mahabaleshwara Maganahalli","Active Incidents (True or False)":false},{"Number":"PRB0068511","Created":"2024-07-18 02:34:04","Active":true,"Related Incidents":9,"Priority":"4 - Low","Problem statement":"Jobs are running with some latency/Delay in DataStage 11.7 version ","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Surya Prakash Manduva","Active Incidents (True or False)":false},{"Number":"PRB0068473","Created":"2024-07-15 07:44:39","Active":true,"Related Incidents":2,"Priority":"4 - Low","Problem statement":"Unable to run the journal report on Xadmin for whole day.","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068452","Created":"2024-07-12 10:58:57","Active":true,"Related Incidents":5,"Priority":"4 - Low","Problem statement":"Returns price came as $0.01 cent while performing unverified returns","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068402","Created":"2024-07-08 07:22:44","Active":true,"Related Incidents":1,"Priority":"1 - Critical","Problem statement":"TJX US Sales polling End of Day has breached the SLA of 05:45 AM ET ","State":"Review","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0068144","Created":"2024-06-10 10:05:48","Active":true,"Related Incidents":1,"Priority":"4 - Low","Problem statement":"Charity keys not populating amount on screen when the cancel button has been  used in  a prior transaction in TJXC stores","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0067869","Created":"2024-05-08 03:31:05","Active":true,"Related Incidents":145,"Priority":"1 - Critical","Problem statement":"Store Closure Impacted : sysopen file exist issue ","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0067820","Created":"2024-05-02 12:13:19","Active":true,"Related Incidents":5,"Priority":"4 - Low","Problem statement":"Customers not receiving eReceipts","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Muskan Tripathi","Active Incidents (True or False)":false},{"Number":"PRB0067516","Created":"2024-04-08 10:21:35","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"v21: Orphaned Tender Control is causing OOB in T-log","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":false},{"Number":"PRB0067473","Created":"2024-04-02 10:25:08","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"v21.01-T-log/MF OOB due to invalid dept","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":false},{"Number":"PRB0067343","Created":"2024-03-21 10:23:34","Active":true,"Related Incidents":0,"Priority":"4 - Low","Problem statement":"NA Sales polling Datastage Tlog processing risk for FY25 Peak","State":"Diagnose","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0066987","Created":"2024-02-14 10:42:54","Active":true,"Related Incidents":2,"Priority":"1 - Critical","Problem statement":"TJX-US TJ Maxx Sales Polling EOD and Mainframe Flash breached the SLA of 5:45 AM ET and 6:30 AM ET respectively ","State":"Monitor and Resolve","Urgency":"1 - Critical","Assignment group":"SDM-Xstore-L3","Assigned to":"Pavithra P","Active Incidents (True or False)":false},{"Number":"PRB0066625","Created":"2023-12-28 14:51:16","Active":true,"Related Incidents":1,"Priority":"3 - Moderate","Problem statement":"v21 Issue: MF OOB due to Invalid Payment Code - JIRA (GFOSTEAM-37497)","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":false},{"Number":"PRB0066444","Created":"2023-12-07 06:04:54","Active":true,"Related Incidents":11,"Priority":"4 - Low","Problem statement":"Unable to scan driving license for non return receipts ","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Debayon Dey","Active Incidents (True or False)":false},{"Number":"PRB0066268","Created":"2023-11-17 15:26:53","Active":true,"Related Incidents":3,"Priority":"4 - Low","Problem statement":"Customer is charged on a voided tender. ","State":"Monitor and Resolve","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":false},{"Number":"PRB0066094","Created":"2023-10-31 14:08:11","Active":true,"Related Incidents":2,"Priority":"3 - Moderate","Problem statement":"SVC activated-online in error-INC6151400","State":"Diagnose","Urgency":"2 - High","Assignment group":"SDM-Xstore-L3","Assigned to":"Mohd Yakub Khan","Active Incidents (True or False)":false},{"Number":"PRB0065642","Created":"2023-09-14 10:47:45","Active":true,"Related Incidents":23,"Priority":"4 - Low","Problem statement":"Issue found with an item being sold after a SKU block was sent to store controller and registers","State":"Monitor and Resolve","Urgency":"3 - Medium","Assignment group":"SDM-Xstore-L3","Assigned to":"Priyanka Raju Sandupatla","Active Incidents (True or False)":false}];
+
+const PRIORITY_CLASS = {
+  "1 - Critical":"badge-critical","2 - High":"badge-high",
+  "3 - Moderate":"badge-moderate","4 - Low":"badge-low"
+};
+const STATE_CLASS = {
+  "Monitor and Resolve":"badge-monitor","Diagnose":"badge-diagnose",
+  "Prioritize":"badge-prioritize","Detect":"badge-detect","Review":"badge-review"
+};
+
+let filtered = [...DATA];
+let page = 0;
+const PAGE = 20;
+let jiraData = [];
+let selectedNum = null;
+
+function badge(text, cls){ return `<span class="badge ${cls||''}">${text||'—'}</span>`; }
+
+function initStats(){
+  document.getElementById('st-crit').textContent = DATA.filter(t=>t.Priority==='1 - Critical').length;
+  document.getElementById('st-active').textContent = DATA.filter(t=>t['Active Incidents (True or False)']).length;
+  document.getElementById('st-diag').textContent = DATA.filter(t=>t.State==='Diagnose').length;
+}
+
+function applyFilters(){
+  const pri = document.getElementById('fPriority').value;
+  const sta = document.getElementById('fState').value;
+  const act = document.getElementById('fActive').value;
+  filtered = DATA.filter(t=>{
+    if(pri && t.Priority!==pri) return false;
+    if(sta && t.State!==sta) return false;
+    if(act==='yes' && !t['Active Incidents (True or False)']) return false;
+    if(act==='no' && t['Active Incidents (True or False)']) return false;
+    return true;
+  });
+  page=0;
+  renderTable();
+}
+
+function clearFilters(){
+  document.getElementById('fPriority').value='';
+  document.getElementById('fState').value='';
+  document.getElementById('fActive').value='';
+  applyFilters();
+}
+
+function renderTable(){
+  const start = page*PAGE, end = Math.min(start+PAGE, filtered.length);
+  const rows = filtered.slice(start,end);
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = rows.map(t=>`
+    <tr onclick="selectRow('${t.Number}')" class="${selectedNum===t.Number?'selected':''}">
+      <td class="number">${t.Number}</td>
+      <td>${badge(t.Priority, PRIORITY_CLASS[t.Priority]||'')}</td>
+      <td class="statement">${t['Problem statement']||''}</td>
+      <td>${badge(t.State, STATE_CLASS[t.State]||'')}</td>
+      <td class="assignee">${t['Assigned to']||'—'}</td>
+      <td class="incidents">${(t['Related Incidents']||0).toLocaleString()}</td>
+    </tr>`).join('');
+  document.getElementById('resultCount').textContent = `${filtered.length} results`;
+  document.getElementById('pageInfo').textContent = `Page ${page+1} of ${Math.ceil(filtered.length/PAGE)||1}`;
+  document.getElementById('prevBtn').disabled = page===0;
+  document.getElementById('nextBtn').disabled = end>=filtered.length;
+}
+
+function changePage(d){
+  const max = Math.ceil(filtered.length/PAGE)-1;
+  page = Math.max(0,Math.min(max,page+d));
+  renderTable();
+}
+
+function selectRow(num){
+  selectedNum = num;
+  document.querySelectorAll('tbody tr').forEach(r=>r.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  showDetail(num);
+}
+
+function lookupTicket(){
+  const val = document.getElementById('searchInput').value.trim().toUpperCase();
+  if(!val) return;
+  const t = DATA.find(d=>d.Number.toUpperCase()===val);
+  if(!t){ alert('No ticket found: '+val); return; }
+  selectedNum = t.Number;
+  showDetail(t.Number);
+  renderTable();
+}
+
+function showDetail(num){
+  const t = DATA.find(d=>d.Number===num);
+  if(!t) return;
+  const jm = jiraData.find(j=>Object.values(j).some(v=>String(v).includes(num)));
+  const pc = PRIORITY_CLASS[t.Priority]||'';
+  const sc = STATE_CLASS[t.State]||'';
+
+  const jiraHtml = jm ? `
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span class="detail-card-tag">JIRA ticket</span>
+        <span class="detail-card-num">${jm.key||jm.Key||jm.ID||Object.values(jm)[0]||'—'}</span>
+        <span class="pill-green" style="margin-left:auto">✓ Matched</span>
+      </div>
+      <div class="fields-grid">
+        ${Object.entries(jm).slice(0,12).map(([k,v])=>`
+          <div class="field"><div class="field-key">${k}</div><div class="field-val">${String(v??'—')}</div></div>
+        `).join('')}
+      </div>
+    </div>
+  ` : `
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span class="detail-card-tag">JIRA ticket</span>
+      </div>
+      <div class="empty-jira">
+        <div class="empty-icon">📂</div>
+        <div>${jiraData.length===0 ? 'Upload a JIRA .xlsx file above to enable matching.' : 'No matching JIRA ticket found for '+num}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('detailGrid').innerHTML = `
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <span class="detail-card-tag">Problem ticket</span>
+        <span class="detail-card-num">${t.Number}</span>
+      </div>
+      <div class="detail-statement">${t['Problem statement']}</div>
+      <div class="fields-grid">
+        <div class="field"><div class="field-key">Priority</div><div class="field-val">${badge(t.Priority,pc)}</div></div>
+        <div class="field"><div class="field-key">State</div><div class="field-val">${badge(t.State,sc)}</div></div>
+        <div class="field"><div class="field-key">Urgency</div><div class="field-val">${t.Urgency||'—'}</div></div>
+        <div class="field"><div class="field-key">Created</div><div class="field-val">${(t.Created||'').split(' ')[0]}</div></div>
+        <div class="field"><div class="field-key">Assigned to</div><div class="field-val">${t['Assigned to']||'—'}</div></div>
+        <div class="field"><div class="field-key">Assignment group</div><div class="field-val">${t['Assignment group']||'—'}</div></div>
+        <div class="field"><div class="field-key">Related incidents</div><div class="field-val">${(t['Related Incidents']||0).toLocaleString()}</div></div>
+        <div class="field"><div class="field-key">Active incidents</div><div class="field-val">${t['Active Incidents (True or False)']?'<span class="pill-green">Yes</span>':'No'}</div></div>
+      </div>
+    </div>
+    ${jiraHtml}
+  `;
+  document.getElementById('detailContainer').classList.add('open');
+  document.getElementById('clearBtn').style.display='inline-flex';
+  document.getElementById('detailContainer').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function clearDetail(){
+  document.getElementById('detailContainer').classList.remove('open');
+  document.getElementById('clearBtn').style.display='none';
+  document.getElementById('searchInput').value='';
+  selectedNum=null;
+  renderTable();
+}
+
+function handleJiraUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const wb = XLSX.read(ev.target.result,{type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      jiraData = XLSX.utils.sheet_to_json(ws,{defval:''});
+      document.getElementById('jiraStatus').innerHTML = `<span class="pill-green">✓ ${jiraData.length} JIRA tickets loaded from ${file.name}</span>`;
+      document.getElementById('uploadBtn').classList.add('loaded');
+      document.getElementById('uploadBtn').textContent = '✓ ' + file.name;
+      document.getElementById('st-jira').textContent = jiraData.length;
+      if(selectedNum) showDetail(selectedNum);
+    }catch(err){ alert('Could not read file. Please upload a valid .xlsx file.'); }
+  };
+  reader.readAsBinaryString(file);
+}
+
+initStats();
+applyFilters();
+</script>
+</body>
+</html>
